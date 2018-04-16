@@ -351,35 +351,7 @@ function fireTorpedo(e) {
 }
 
 //runs when a the server sends a message that a torpedo has been fired at the player
-io.socket.on('receiveTorpedo', function(eid) {
-  alert("received torpedo");
-  var row = eid.substring(1,2);
-  var col = eid.substring(2,3);
-  myTurn = true;
-  document.getElementById("turnTracker").innerHTML = "Your Turn!";
-  // if enemy clicks a square with no ship, change the color and change square's value
-  if (playerBoard[row][col] == 0) {
-    document.getElementById(eid).style.background = '#bbb';
-    // set this square's value to 3 to indicate that they fired and missed
-    playerBoard[row][col] = 3;
-    document.getElementById("informationBar").innerHTML = "Your opponent missed!"
-    // if enemy clicks a square with a ship, change the color and change square's value
-  } else if (playerBoard[row][col] == 1) {
-    document.getElementById(eid).style.backgroundImage = "url('/images/Explosion.png'), " + document.getElementById(eid).style.backgroundImage;
-    // set this square's value to 2 to indicate the ship has been hit
-    playerBoard[row][col] = 2;
-    document.getElementById("informationBar").innerHTML = "Your opponent hit one of your ships!"
-    // increment hitCount each time a ship is hit
-    playerHealth--;
-    // this definitely shouldn't be hard-coded, but here it is anyway. lazy, simple solution:
-    if (playerHealth == 0) {
-      document.getElementById("informationBar").innerHTML = "All your ships have been defeated! You lose!"
-      document.getElementById("turnTracker").innerHTML = "Game Over!"
-      gameOver = true;
-      myTurn = false;
-    }
-  }
-});
+
 
 //runs when the other player finishes setting up their board
 

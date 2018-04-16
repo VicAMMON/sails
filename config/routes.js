@@ -53,5 +53,6 @@ module.exports.routes = {
   'GET /gameMatchRoom' : {view:'gameMatchRoom'},
   '/GameController/joinGameRoom': 'GameController.joinGameRoom',
   'POST /createUser': 'RegisterController.createUser',
-  'GET /awaitingPlayer': {view: 'awaitingPlayer'}
+  'GET /awaitingPlayer': {view: 'awaitingPlayer'},
+  'POST /disconnected:': 'GameController.disconnected'
 };

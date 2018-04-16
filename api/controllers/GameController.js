@@ -34,21 +34,22 @@ module.exports = {
     //var username;
 
     var username;
+    var currentSessionId = req.headers.cookie.split(/[;= ]/);
     //console.log("userName" + userName);
     // here we are finding the user that requested to create a room
-    username = Users.find({id:userId}).exec(function(err, user){
+    Users.find({id:userId}).exec(function(err, user){
       if(err){
         console.log('error finding user');
         res.send(500, {error:'database error'});
       }else{
         var username = user[0].username;
-        console.log('username:' + username);
+        //console.log('username:' + username);
         //socket.username = username;
 //        console.log('sails.socket:'+ socket);
 
         let randomNum = Math.floor(Math.random() * Math.floor(1000000));
         let roomName = "room" + randomNum;
-        console.log("creating and joing room:" + roomName);
+        //console.log("creating and joing room:" + roomName);
         gameRooms.push({name:randomNum, host:username, numActivePlayers:1, userOneId:userId, userOneSocketId: sails.sockets.getId(req)});
         sails.sockets.join(req, roomName);
         //sails.sockets.broadcast('GameRoom1', 'addRoomToView', {roomName:"GameRoo12"});
@@ -56,28 +57,27 @@ module.exports = {
         //sails.log("\n\n\n\n cookie" + sails.config.session.cookie);
         //sails.log("\n\n\n\n" + sails.config.session.secret);
 
-        sails.log("\n\n\n\n\n\n Hearrs" +req.headers.cookie);
-        let currentSessionId = req.headers.cookie.split("=");
+        //sails.log("\n\n\n\n\n\n Hearrs" +req.headers.cookie);
+
         let indexOfSession;
         for(let i=0; i < currentSessionId.length; i++){
           if(currentSessionId[i] == "sails.sid"){
+            console.log("find the index of the session id in createGameROom");
             indexOfSession = i + 1;
           }
         }
+        sails.log("\ncurrentSessionId: " + currentSessionId + "\nindexOfSessionId: " + indexOfSession);
+        let actualSessionId = currentSessionId[indexOfSession];
+        console.log("\nactualSessionId" + actualSessionId);
 
-        let actualSessionId =currentSessionId[indexOfSession];
-        if(typeof actualSessionId == "undefined") {
-          actualSessionId = "blah";
-        }else{
-          actualSessionId = actualSessionId.split(";")[0];
-        }
-        console.log("actualSessionId" + actualSessionId);
+        //console.log("actualSessionId" + actualSessionId);
 
-        sails.log(currentSessionId);
-        console.log("\n\n\n\nsid:" + req.sessionId);
+        //sails.log(currentSessionId);
+        //console.log("\n\n\n\nsid:" + req.sessionId);
 
 
         sails.sockets.blast('addRoomToView', {roomName:roomName, host:username, ourSessionId:actualSessionId});
+        sails.sockets.broadcast(sails.sockets.getId(req), 'saveUserSID', {ourSessionId: actualSessionId })
         // emit a socket to the current user to send them to a waiting room;
         sails.sockets.broadcast(sails.sockets.getId(req),'takePlayerToWaitingRoom');
 
@@ -96,6 +96,7 @@ module.exports = {
   joinGameRoom: function(req,res){
     // if the current user isn't authenticated then redirect them to the login page
     //console.log((req.session.passport.user == "undefined") )
+    console.log('\n In joinGameRoom');
     if( typeof req.session.passport == "undefined" || typeof req.session.passport.user == "undefined"){
       console.log("in joinGameRoom the session expired, redirecting to login page");
       sails.sockets.broadcast(sails.sockets.getId(req), 'errorAlert', {message:'Session Expired. Please login again'});
@@ -124,6 +125,21 @@ module.exports = {
       // we should now start the game if there are two players in the current gameRooms
       hostSocketId = gameRooms[canJoin.roomIndex].userOneSocketId;
 
+
+
+      let currentSessionId = req.headers.cookie.split(/[ ;=]/);
+      let indexOfSession;
+      for(let i=0; i < currentSessionId.length; i++){
+        if(currentSessionId[i] == "sails.sid"){
+          indexOfSession = i + 1;
+        }
+      }
+      sails.log("\nreq.headers.split: " + currentSessionId);
+      sails.log("\n indexOfSessionid: " + indexOfSession);
+      let actualSessionId = currentSessionId[indexOfSession];
+      console.log("actualSessionId" + actualSessionId);
+
+      sails.sockets.broadcast(sails.sockets.getId(req), 'saveUserSID', {ourSessionId:actualSessionId});
       sails.sockets.broadcast([sails.sockets.getId(req), hostSocketId], 'startGame', {sessionId: 'one'});
 
     }
@@ -155,7 +171,6 @@ module.exports = {
       //sails.sockets.blast('yell', {message: 'anything'});
      // sails.sockets.blast('yell', {message:'message'});
       //sails.sockets.broadcast(sendToThisRoom, 'receiveBoard', req.body.playerBoard, sails.sockets.getId(req))
-      console.log("checking to make sure request is a socket: " + req.isSocket === true)
       let currentSessionId = req.headers.cookie.split("=");
       let indexOfSession;
       for(let i=0; i < currentSessionId.length; i++){
@@ -165,8 +180,12 @@ module.exports = {
       }
 
       let actualSessionId = currentSessionId[indexOfSession].split(";")[0];
+      console.log("actual Session" + actualSessionId);
+      console.log("checking to make sure request is a socket: " + req.isSocket === true)
+      sails.sockets.broadcast(sendToThisRoom, 'receiveBoard', {board: req.body.playerBoard, ourSessionId: actualSessionId});
 
-      sails.sockets.broadcast(sendToThisRoom, 'receiveBoard', {board: req.body.playerBoard, ourSessionId:actualSessionId},req);
+
+
 
     }else{
       console.log("no room found");
@@ -190,7 +209,15 @@ module.exports = {
       // sails.sockets.blast('yell', {message:'message'});
       //sails.sockets.broadcast(sendToThisRoom, 'receiveBoard', req.body.playerBoard, sails.sockets.getId(req))
       sails.log("eid: " + req.body.eid );
-      sails.sockets.broadcast(sendToThisRoom, 'receiveBoard', {eid: req.body.eid}, req);
+      let currentSessionId = req.headers.cookie.split(/[=;]/);
+      let indexOfSession;
+      for(let i=0; i < currentSessionId.length; i++){
+        if(currentSessionId[i] == "sails.sid"){
+          indexOfSession = i + 1;
+        }
+      }
+      let actualSessionId = currentSessionId[indexOfSession].split(/[;=]/)[0];
+      sails.sockets.broadcast(sendToThisRoom, 'receiveTorpedo', {eid: req.body.eid, ourSessionId:actualSessionId}, req);
 
     }else{
       console.log("no room found");
@@ -198,6 +225,41 @@ module.exports = {
 
     }
 
+  },
+  chat: function(req,res){
+    var d = new Date();
+    h = d.getHours().toString();
+    m = d.getMinutes().toString();
+    //minute length should be 2 digits ex 01
+    if(m.length == 1) {
+      m = '0' + m;
+    }
+    msg = h + ':' + m + ')' + req.body.msg;
+    console.log("message: " + msg);
+
+
+
+
+    var roomToEmitTo = findRoom(req.session.passport.user);
+    console.log("roomTOEmmitTo"  + roomToEmitTo);
+    sails.log(roomToEmitTo);
+    if(roomToEmitTo.roomFound == true){
+      sendToThisRoom = "room" + roomToEmitTo.roomName;
+      console.log("broadcasting to room:" + sendToThisRoom + "omitting this socket:" + sails.sockets.getId(req));
+      //sails.sockets.blast('yell', {message: 'anything'});
+      // sails.sockets.blast('yell', {message:'message'});
+      //sails.sockets.broadcast(sendToThisRoom, 'receiveBoard', req.body.playerBoard, sails.sockets.getId(req))
+      sails.socket.broadcast(sendToThisRoom, 'chat', msg);
+
+    }else{
+      console.log("no room found");
+      sails.sockets.broadcast(sails.sockets.getId(req), {message: 'Error sending eid to other socket'});
+
+    }
+
+    },
+  disconnected: function(req,res){
+    console.log("A user disconnected" + req.session.passport.user);
   }
 };
 
