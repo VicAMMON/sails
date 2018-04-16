@@ -119,95 +119,6 @@ io.socket.on('disconnect', function(){
   alert("disconnected")
 })
 
-
-io.socket.on('receiveBoard', function(newBoard) {
-  //alert("received board");
-
-  let currentSessionId = document.cookie.split("=");
-  let indexOfSession;
-  for(let i=0; i < currentSessionId.length; i++){
-    if(currentSessionId[i] == "actualSessionId"){
-      indexOfSession = i + 1;
-    }
-  }
-  let actualSessionId = currentSessionId[indexOfSession];
-
-  console.log("\n actualSessionId:" + actualSessionId);
-  console.log("\n newBoard.ourSessionId");
-  console.log(newBoard.ourSessionId);
-
-  if(newBoard.ourSessionId != actualSessionId){
-    alert("Received board that wasn't ours");
-    enemyBoard = newBoard.board;
-    enemyBoard = newBoard.board;
-    enemyReady = true;
-    if(playerReady && enemyReady) {
-      //remove the place ships ui and replace it with the opponents board
-      var p = document.getElementById("placeShips");
-      p.style.display = "none";
-      var en = document.getElementById("enemyBoard");
-      en.style.display = "inline-block";
-      //the player that finishes setting up their board first gets to go first
-      myTurn = true;
-      document.getElementById("turnTracker").innerHTML = "Your Turn!";
-      document.getElementById("informationBar").innerHTML = "You finished placing ships first so you get to take the first shot!";
-    }
-  }
-
-
-});
-
-
-
-io.socket.on('receiveTorpedo', function(data) {
-  //alert("receivedTorpedo")
-  eid = data.eid;
-  let currentSessionId = document.cookie.split("=");
-  let indexOfSession;
-  for(let i=0; i < currentSessionId.length; i++){
-    if(currentSessionId[i] == "actualSessionId"){
-      indexOfSession = i + 1;
-    }
-  }
-  let actualSessionId = currentSessionId[indexOfSession];
-
-  console.log("\n actualSessionId:" + actualSessionId);
-  console.log("\n newBoard.ourSessionId");
-  console.log(data.ourSessionId);
-
-  if(data.ourSessionId != actualSessionId) {
-    alert("received torpedo that wasn't ours ");
-    var row = eid.substring(1,2);
-    var col = eid.substring(2,3);
-    myTurn = true;
-    document.getElementById("turnTracker").innerHTML = "Your Turn!";
-    // if enemy clicks a square with no ship, change the color and change square's value
-    if (playerBoard[row][col] == 0) {
-      document.getElementById(eid).style.background = '#bbb';
-      // set this square's value to 3 to indicate that they fired and missed
-      playerBoard[row][col] = 3;
-      document.getElementById("informationBar").innerHTML = "Your opponent missed!"
-      // if enemy clicks a square with a ship, change the color and change square's value
-    } else if (playerBoard[row][col] == 1) {
-      document.getElementById(eid).style.backgroundImage = "url('/images/Explosion.png'), " + document.getElementById(eid).style.backgroundImage;
-      // set this square's value to 2 to indicate the ship has been hit
-      playerBoard[row][col] = 2;
-      document.getElementById("informationBar").innerHTML = "Your opponent hit one of your ships!"
-      // increment hitCount each time a ship is hit
-      playerHealth--;
-      // this definitely shouldn't be hard-coded, but here it is anyway. lazy, simple solution:
-      if (playerHealth == 0) {
-        document.getElementById("informationBar").innerHTML = "All your ships have been defeated! You lose!"
-        document.getElementById("turnTracker").innerHTML = "Game Over!"
-        gameOver = true;
-        myTurn = false;
-      }
-    }
-  }
-
-});
-
-
 // battleship
 
 // set grid rows and columns and the size of each square
@@ -527,7 +438,7 @@ function fireTorpedo(e) {
 
       // if player clicks a square with no ship, change the color and change square's value
       if (enemyBoard[row][col] == 0) {
-        e.target.style.background = '#bbb';
+		e.target.style.backgroundImage = "url('Assets/Ripple.png'), " + e.target.style.backgroundImage;
         // set this square's value to 3 to indicate that they fired and missed
         enemyBoard[row][col] = 3;
         myTurn = false;
@@ -564,10 +475,97 @@ function fireTorpedo(e) {
 
 
 //runs when a the server sends a message that a torpedo has been fired at the player
+io.socket.on('receiveTorpedo', function(data) {
+  //alert("receivedTorpedo")
+  eid = data.eid;
+  let currentSessionId = document.cookie.split("=");
+  let indexOfSession;
+  for(let i=0; i < currentSessionId.length; i++){
+    if(currentSessionId[i] == "actualSessionId"){
+      indexOfSession = i + 1;
+    }
+  }
+  let actualSessionId = currentSessionId[indexOfSession];
 
+  console.log("\n actualSessionId:" + actualSessionId);
+  console.log("\n newBoard.ourSessionId");
+  console.log(data.ourSessionId);
+
+  if(data.ourSessionId != actualSessionId) {
+    alert("received torpedo that wasn't ours ");
+    var row = eid.substring(1,2);
+    var col = eid.substring(2,3);
+    myTurn = true;
+    document.getElementById("turnTracker").innerHTML = "Your Turn!";
+    // if enemy clicks a square with no ship, change the color and change square's value
+    if (playerBoard[row][col] == 0) {
+	  document.getElementById(eid).style.backgroundImage = "url('Assets/Ripple.png'), " + document.getElementById(eid).style.backgroundImage;
+      // set this square's value to 3 to indicate that they fired and missed
+      playerBoard[row][col] = 3;
+      document.getElementById("informationBar").innerHTML = "Your opponent missed!"
+      // if enemy clicks a square with a ship, change the color and change square's value
+    } else if (playerBoard[row][col] == 1) {
+      document.getElementById(eid).style.backgroundImage = "url('/images/Explosion.png'), " + document.getElementById(eid).style.backgroundImage;
+      // set this square's value to 2 to indicate the ship has been hit
+      playerBoard[row][col] = 2;
+      document.getElementById("informationBar").innerHTML = "Your opponent hit one of your ships!"
+      // increment hitCount each time a ship is hit
+      playerHealth--;
+      // this definitely shouldn't be hard-coded, but here it is anyway. lazy, simple solution:
+      if (playerHealth == 0) {
+        document.getElementById("informationBar").innerHTML = "All your ships have been defeated! You lose!"
+        document.getElementById("turnTracker").innerHTML = "Game Over!"
+        gameOver = true;
+        myTurn = false;
+      }
+    }
+  }
+});
 
 //runs when the other player finishes setting up their board
+io.socket.on('receiveBoard', function(newBoard) {
+  //alert("received board");
 
+  let currentSessionId = document.cookie.split("=");
+  let indexOfSession;
+  for(let i=0; i < currentSessionId.length; i++){
+    if(currentSessionId[i] == "actualSessionId"){
+      indexOfSession = i + 1;
+    }
+  }
+  let actualSessionId = currentSessionId[indexOfSession];
+
+  console.log("\n actualSessionId:" + actualSessionId);
+  console.log("\n newBoard.ourSessionId");
+  console.log(newBoard.ourSessionId);
+
+  if(newBoard.ourSessionId != actualSessionId){
+    alert("Received board that wasn't ours");
+    enemyBoard = newBoard.board;
+    enemyBoard = newBoard.board;
+    enemyReady = true;
+    if(playerReady && enemyReady) {
+      //remove the place ships ui and replace it with the opponents board
+      var p = document.getElementById("placeShips");
+      p.style.display = "none";
+      var en = document.getElementById("enemyBoard");
+      en.style.display = "inline-block";
+      //the player that finishes setting up their board first gets to go first
+      myTurn = true;
+      document.getElementById("turnTracker").innerHTML = "Your Turn!";
+      document.getElementById("informationBar").innerHTML = "You finished placing ships first so you get to take the first shot!";
+    }
+  }
+});
 // battleship.js
 
-
+// Sources of the original image files used and modified
+/* BattleshipHorizontal.png, BattleshipVertical.png. Original source retrieved from: https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Kongo1944.png/1280px-Kongo1944.png
+   CarrierHorizontal.png, CarrierVertical.png. Original source retrieved from: https://i.pinimg.com/originals/75/a3/07/75a307c03494cbcdd38f04299f907ee3.png
+   DestroyerHorizontal.png, DestroyerVertical.png. Original source retrieved from: https://www.the-blueprints.com/blueprints-depot/ships/ships-other/jmsdf-kongo-ddg-173-destroyer.png
+   SubmarineHorizontal.png, SubmarineVertical.png. Original source retrieved from: https://thaimilitaryandasianregion.files.wordpress.com/2017/04/ussr-yassen-project-885-submarine.png
+   PatrolHorizontal.png, PatrolVertical.png. Original source retrieved from: http://alldrawings.ru/cache/com_zoo/images/PLAN_Houbei_%5bType_022_Missile_boat_%5d_ff8a8f33ec8f7df65b743e097f6cee62.png
+   Grid.png. Original source retrieved from: https://lh3.googleusercontent.com/-OHGcP587YkE/V3C0JL56DkI/AAAAAAAAJVs/dRQhq27fE1cPUl28GcUHBsq13qsRPlTlQCHM/s0/DSC00785.JPG
+   Ripple.png. Original source retrieved from: http://unisci24.com/316448.html
+   Explosion.png. Original source retrieved from: https://i.pinimg.com/originals/be/64/74/be64740e184fff89329fc84eb6551155.png
+*/
